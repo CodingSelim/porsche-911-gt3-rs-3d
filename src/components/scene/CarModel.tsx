@@ -30,8 +30,6 @@ const WHEEL_SPIN = 9; // rad/s — continuous spin while the drive section is sh
 const UP = new THREE.Vector3(0, 1, 0);
 const RIGHT = new THREE.Vector3(1, 0, 0);
 
-// The cockpit cluster — kept and rotated for the cabin reveal while everything
-// else (body, glass, wheels, chassis, suspension) explodes away and dims.
 const INTERIOR = [
   "seat_fl",
   "seat_fr",
@@ -109,13 +107,6 @@ function localAxle(part: THREE.Object3D): THREE.Vector3 {
   return new THREE.Vector3(0, 0, 1);
 }
 
-/**
- * Scroll-driven posing. Four motion modes, all tied to scroll position (no
- * free-running time): `showcase` lifts one part out and turns it a full
- * revolution; `drive` faces the car right, spins the wheels and adds a subtle
- * suspension bob; `tub` flies the outer shell off and rotates the bare
- * monocoque 360°; otherwise the car simply assembles / explodes and poses.
- */
 export default function CarModel() {
   const { scene } = useGLTF(MODEL_URL);
   const model = useMemo(() => scene.clone(true), [scene]);
@@ -260,8 +251,6 @@ export default function CarModel() {
     });
     parts.current = records;
 
-    // Cockpit centroid in two spaces: assembly-local (to spin it about its own
-    // centre) and stage-local (to frame it on screen). They map to one another.
     const interior = records.filter((p) => p.isInterior);
     if (interior.length) {
       const icLocal = new THREE.Vector3();
@@ -295,8 +284,6 @@ export default function CarModel() {
     const motion = c.motion;
     const localT = localProgress(off, idx);
 
-    // Settle into the final pose once the Order section is in view, then freeze —
-    // the car stops following the scroll for the footer / remaining scroll.
     const proofMid = chapterMids[chapters.length - 2];
     const freezeEnd = proofMid + (1 - proofMid) * 0.45;
     let poff = off;
@@ -304,14 +291,11 @@ export default function CarModel() {
       poff = proofMid + (1 - proofMid) * Math.min(1, (off - proofMid) / (freezeEnd - proofMid));
     }
 
-    // Drive intensity ramps in/out at the section edges (scroll-based fade).
     const driving = motion === "drive" || motion === "track";
     const driveI = driving ? Math.min(1, Math.min(localT, 1 - localT) * 5) : 0;
 
     samplePose(poff, pose);
     if (driveI > 0) {
-      // Continuous suspension physics on the clock: vertical bounce, pitch
-      // (squat under power) and a little body roll, scaled by drive intensity.
       const t = state.clock.elapsedTime;
       pose.y += (Math.sin(t * 8.4) * 0.6 + Math.sin(t * 5.1 + 1.1) * 0.4) * 0.02 * driveI;
       pose.rx +=
@@ -319,8 +303,6 @@ export default function CarModel() {
       pose.rz += Math.sin(t * 4.2) * 0.018 * driveI;
     }
 
-    // Cabin: hold the cockpit to the right of the copy and run a push-in zoom
-    // with an up / down / left / right pan that sweeps across it.
     if (motion === "tub") {
       pose.s *= 1 + Math.sin(localT * Math.PI) * 0.12;
       const baseX = c.align === "right" ? -1.05 : 1.05;
@@ -349,12 +331,9 @@ export default function CarModel() {
 
     const needle = motion === "showcase" && c.focus ? c.focus.part.toLowerCase() : null;
     const side = c.align === "right" ? -1 : 1;
-    const showAngle = localT * TWO_PI; // showcase part turntable
-
-    // Cabin: a steady yaw revolution, combined with the pan/zoom below.
+    const showAngle = localT * TWO_PI;
     v.qR.setFromAxisAngle(UP, localT * TWO_PI);
 
-    // Wheels spin on their own clock while the drive section is shown.
     spinRef.current += d * WHEEL_SPIN * driveI;
     const wheelAngle = spinRef.current;
 
@@ -371,18 +350,15 @@ export default function CarModel() {
 
       if (motion === "tub") {
         if (p.isInterior) {
-          // The cockpit cluster tumbles as one rigid body about its own centre.
           v.rel.copy(p.base).sub(interiorCenter.current).applyQuaternion(v.qR);
           v.target.copy(interiorCenter.current).add(v.rel);
           p.obj.quaternion.copy(v.qR).multiply(p.baseQuat);
         } else {
-          // Everything else is pushed away and faded out so it can't occlude.
           v.target.copy(v.exploded);
           p.obj.quaternion.copy(p.baseQuat);
           lit = false;
         }
       } else if (isFocus) {
-        // Lifted to the showcase point, turning a full revolution.
         sfTarget = p.showcaseFactor;
         v.qY.setFromAxisAngle(UP, showAngle);
         v.q.copy(v.qY).multiply(p.baseQuat);
@@ -390,7 +366,6 @@ export default function CarModel() {
         v.rot.copy(p.centroid).multiplyScalar(p.sf).applyQuaternion(v.q);
         v.target.copy(v.showcaseLocal).sub(v.rot);
       } else if (driving && p.spinAxle && e < 0.05) {
-        // Wheel/disc spin in place — set directly so the spin stays crisp.
         v.qSpin.setFromAxisAngle(p.spinAxle, wheelAngle);
         v.q.copy(p.baseQuat).multiply(v.qSpin);
         p.obj.quaternion.copy(v.q);
@@ -403,7 +378,6 @@ export default function CarModel() {
         lit = !needle || isFocus;
       }
 
-      // Critically damp scale + position so mode changes ease instead of teleport.
       p.sf = damp(p.sf, sfTarget, 6, d);
       p.obj.scale.copy(p.baseScale).multiplyScalar(p.sf);
       if (direct) {
@@ -414,7 +388,6 @@ export default function CarModel() {
         p.obj.position.z = damp(p.obj.position.z, v.target.z, 6, d);
       }
 
-      // Spotlight (colour) + fade-out (opacity, so hidden parts can't occlude).
       p.dim = damp(p.dim, lit ? 1 : 0.04, 4, d);
       const opTarget = motion === "tub" && !p.isInterior ? 0 : 1;
       p.op = damp(p.op, opTarget, 4, d);

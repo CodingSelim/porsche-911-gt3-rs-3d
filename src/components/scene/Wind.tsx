@@ -11,15 +11,10 @@ const proofIdx = chapters.findIndex((c) => c.id === "proof");
 const RANGE = proofIdx >= 0 ? chapterRanges[proofIdx] : ([1, 1] as [number, number]);
 
 const N = 80;
-const SPAN_Z = 28; // depth the streaks wrap through
-const SPEED = 30; // streak travel speed
-const HEADING = -0.86; // aligned to the road
+const SPAN_Z = 28;
+const SPEED = 30;
+const HEADING = -0.86;
 
-/**
- * Wind streaks that rush past the car during the Proof section to sell speed —
- * thin additive lines flowing along the road heading, wrapping endlessly. They
- * fade in/out with the section so it stays smooth.
- */
 export default function Wind() {
   const lines = useRef<THREE.LineSegments>(null);
   const mat = useRef<THREE.LineBasicMaterial>(null);

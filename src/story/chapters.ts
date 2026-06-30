@@ -50,12 +50,6 @@ export interface Chapter {
   cta?: boolean;
 }
 
-/*
- * Real Porsche 911 GT3 RS (992.1): 4.0 L NA flat-six · 525 PS @ 8 500 rpm ·
- * 465 Nm @ 6 300 · 9 000 redline · 7-spd PDK · 0–100 3.2 s · 296 km/h ·
- * 1 450 kg · 860 kg downforce · active DRS · PCCB 410/390 · centre-lock ·
- * Nürburgring 6:49.328 · from $225,250.
- */
 export const chapters: Chapter[] = [
   {
     id: "hero",
@@ -215,7 +209,6 @@ export const chapters: Chapter[] = [
   },
 ];
 
-// ---- Scroll ranges derived from section spans ----------------------------
 const totalSpan = chapters.reduce((a, c) => a + c.span, 0);
 const mids: number[] = [];
 {
@@ -227,17 +220,14 @@ const mids: number[] = [];
   }
 }
 
-/** Progress at which each section is centred in the viewport. */
 export const chapterMids = mids;
 
-/** [start, end] scroll range for each chapter (boundaries between midpoints). */
 export const chapterRanges: [number, number][] = chapters.map((_, i) => {
   const start = i === 0 ? 0 : (mids[i - 1] + mids[i]) / 2;
   const end = i === chapters.length - 1 ? 1 : (mids[i] + mids[i + 1]) / 2;
   return [start, end];
 });
 
-/** Cumulative section offsets in span units — used to size the DOM sections. */
 export const chapterSpans = chapters.map((c) => c.span);
 
 export const chapterIndexAt = (off: number): number => {
@@ -247,7 +237,6 @@ export const chapterIndexAt = (off: number): number => {
   return chapters.length - 1;
 };
 
-/** 0..1 progress within a chapter's own scroll range. */
 export const localProgress = (off: number, i: number): number => {
   const [a, b] = chapterRanges[i];
   if (b <= a) return 0;

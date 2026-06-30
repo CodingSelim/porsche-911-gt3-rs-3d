@@ -9,7 +9,7 @@ import { chapterRanges, chapters } from "@/story/chapters";
 
 const proofIdx = chapters.findIndex((c) => c.id === "proof");
 const RANGE = proofIdx >= 0 ? chapterRanges[proofIdx] : ([1, 1] as [number, number]);
-const HEADING = -0.86; // ground yaw, aligned to the car's stance in the Proof section
+const HEADING = -0.86;
 const LENGTH = 70;
 const SCROLL = 1.9;
 
@@ -25,12 +25,6 @@ function makeCanvas(w: number, h: number, draw: (ctx: CanvasRenderingContext2D) 
   return t;
 }
 
-/**
- * Race surface for the Proof section — the car drives in place while the road,
- * kerbs and barriers scroll past beneath it (treadmill technique: animated
- * texture .offset). Everything fades in/out with damped opacity and dissolves
- * into the scene fog at distance, so entering and leaving stays smooth.
- */
 export default function Road() {
   const group = useRef<THREE.Group>(null);
   const op = useRef(0);
@@ -51,7 +45,6 @@ export default function Road() {
     });
     asphalt.repeat.set(1, 9);
 
-    // Bump relief for the asphalt so the moving light grazes the surface.
     const bump = makeCanvas(128, 128, (ctx) => {
       ctx.fillStyle = "#808080";
       ctx.fillRect(0, 0, 128, 128);
@@ -63,7 +56,6 @@ export default function Road() {
     });
     bump.repeat.set(4, 24);
 
-    // Red / white racing kerb.
     const kerb = makeCanvas(16, 128, (ctx) => {
       for (let y = 0; y < 128; y += 32) {
         ctx.fillStyle = "#c01018";
@@ -74,7 +66,6 @@ export default function Road() {
     });
     kerb.repeat.set(1, 26);
 
-    // Dark barrier wall with posts and a thin accent line up top.
     const barrier = makeCanvas(256, 64, (ctx) => {
       ctx.fillStyle = "#101216";
       ctx.fillRect(0, 0, 256, 64);
